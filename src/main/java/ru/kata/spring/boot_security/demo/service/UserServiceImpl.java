@@ -58,16 +58,16 @@ public class UserServiceImpl implements UserService {
         userRepository.save(existingUser);
     }
 
-    @Override
     @Transactional
-    public void updateUserFields(User oldUser, User updateUser) {
-        oldUser.setFirstName(updateUser.getFirstName());
-        oldUser.setLastName(updateUser.getLastName());
-        oldUser.setEmail(updateUser.getEmail());
-        oldUser.setPassword(updateUser.getPassword());
-        oldUser.setAge(updateUser.getAge());
-        oldUser.setRoles(updateUser.getRoles());
+    @Override
+    public void updateUserFields(User user, UserDTO userDTO) {
+        user.setPassword(userDTO.getPassword());
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        user.setAge(userDTO.getAge());
+        user.setEmail(userDTO.getEmail());
     }
+
 
     @Override
     @Transactional

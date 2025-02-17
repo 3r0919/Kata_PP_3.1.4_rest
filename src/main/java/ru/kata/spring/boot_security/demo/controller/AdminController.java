@@ -67,11 +67,7 @@ public class AdminController {
     @PostMapping("/users")
     public ResponseEntity<UserDTO> createUser(@Validated @RequestBody UserDTO userDTO) {
         User user = new User();
-        user.setPassword(userDTO.getPassword());
-        user.setFirstName(userDTO.getFirstName());
-        user.setLastName(userDTO.getLastName());
-        user.setAge(userDTO.getAge());
-        user.setEmail(userDTO.getEmail());
+        userService.updateUserFields(user, userDTO);
 
         Set<Role> roles = userDTO.getRoles() != null ? userDTO.getRoles().stream()
                 .map(roleDTO -> new Role(roleDTO.getId(), roleDTO.getName()))
@@ -87,13 +83,8 @@ public class AdminController {
         User oldUser = userService.findById(id)
                 .orElseThrow(() -> new NoSuchUserException("User with id " + id + " not found"));
 
-        oldUser.setFirstName(updateUserDTO.getFirstName());
-        oldUser.setLastName(updateUserDTO.getLastName());
-        oldUser.setAge(updateUserDTO.getAge());
-        oldUser.setEmail(updateUserDTO.getEmail());
-
         if (updateUserDTO.getPassword() != null) {
-            oldUser.setPassword(updateUserDTO.getPassword());
+            userService.updateUserFields(oldUser, updateUserDTO);
         }
 
         List<Role> roles = updateUserDTO.getRoles().stream()

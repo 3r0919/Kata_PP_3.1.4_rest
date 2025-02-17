@@ -28,6 +28,9 @@ public class UserDTO {
         this.roles = roles != null ? roles : new HashSet<>();
     }
 
+    public UserDTO() {
+    }
+
     public Long getId() {
         return id;
     }

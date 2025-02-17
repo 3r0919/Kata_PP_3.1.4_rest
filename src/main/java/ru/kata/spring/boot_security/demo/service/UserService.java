@@ -1,5 +1,6 @@
 package ru.kata.spring.boot_security.demo.service;
 
+import org.springframework.transaction.annotation.Transactional;
 import ru.kata.spring.boot_security.demo.dto.UserDTO;
 import ru.kata.spring.boot_security.demo.model.User;
 
@@ -20,6 +21,6 @@ public interface UserService {
 
     Optional<User> findById(Long id);
 
-    void updateUserFields(User oldUser, User updateUser);
+    void updateUserFields(User user, UserDTO userDTO);
 
 }
