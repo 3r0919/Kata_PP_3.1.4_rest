@@ -1,6 +1,7 @@
 package ru.kata.spring.boot_security.demo.service;
 
 import org.hibernate.Hibernate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -8,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.kata.spring.boot_security.demo.dto.RoleDTO;
 import ru.kata.spring.boot_security.demo.dto.UserDTO;
 import ru.kata.spring.boot_security.demo.exception_handling.NoSuchUserException;
+import ru.kata.spring.boot_security.demo.mapper.RoleMapper;
+import ru.kata.spring.boot_security.demo.mapper.UserMapper;
 import ru.kata.spring.boot_security.demo.model.User;
 import ru.kata.spring.boot_security.demo.repository.UserRepository;
 
@@ -20,10 +23,13 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+    @Autowired
+    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -37,36 +43,26 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void update(User user) {
-        User existingUser = userRepository.findById(user.getId())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + user.getId()));
+    public void update(UserDTO userDTO) {
+        User existingUser = userRepository.findById(userDTO.getId())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userDTO.getId()));
 
-        existingUser.setEmail(user.getUsername());
-        existingUser.setFirstName(user.getFirstName());
-        existingUser.setLastName(user.getLastName());
-        existingUser.setAge(user.getAge());
-        existingUser.setEmail(user.getEmail());
+        userMapper.updateUserFromDTO(userDTO, existingUser);
 
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
-
-        if (user.getRoles() != null && !user.getRoles().isEmpty()) {
-            existingUser.setRoles(user.getRoles());
-        }
         userRepository.save(existingUser);
     }
 
     @Override
     @Transactional
     public void updateUserFields(User user, UserDTO userDTO) {
-        user.setPassword(userDTO.getPassword());
-        user.setFirstName(userDTO.getFirstName());
-        user.setLastName(userDTO.getLastName());
-        user.setAge(userDTO.getAge());
-        user.setEmail(userDTO.getEmail());
+        if (userDTO == null || user == null) {
+            return;
+        }
+        userMapper.updateUserFromDTO(userDTO, user);
+        if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
+            user.setPassword(userDTO.getPassword());
+        }
     }
-
 
     @Override
     @Transactional
@@ -79,16 +75,7 @@ public class UserServiceImpl implements UserService {
     public List<UserDTO> findAll() {
         List<User> users = userRepository.findAllWithRoles();
         return users.stream()
-                .map(user -> new UserDTO(
-                        user.getId(),
-                        user.getEmail(),
-                        user.getFirstName(),
-                        user.getLastName(),
-                        user.getAge(),
-                        user.getRoles().stream()
-                                .map(role -> new RoleDTO(role.getId(), role.getName()))
-                                .collect(Collectors.toSet())
-                ))
+                .map(userMapper::toDTO)
                 .collect(Collectors.toList());
     }
 

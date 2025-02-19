@@ -10,6 +10,8 @@ import ru.kata.spring.boot_security.demo.dto.RoleDTO;
 import ru.kata.spring.boot_security.demo.dto.UserDTO;
 import ru.kata.spring.boot_security.demo.exception_handling.NoSuchRoleException;
 import ru.kata.spring.boot_security.demo.exception_handling.NoSuchUserException;
+import ru.kata.spring.boot_security.demo.mapper.RoleMapper;
+import ru.kata.spring.boot_security.demo.mapper.UserMapper;
 import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
 import ru.kata.spring.boot_security.demo.service.RoleService;
@@ -26,11 +28,15 @@ public class AdminController {
 
     private final UserService userService;
     private final RoleService roleService;
+    private final RoleMapper roleMapper;
+    private final UserMapper userMapper;
 
     @Autowired
-    public AdminController(UserService userService, RoleService roleService) {
+    public AdminController(UserService userService, RoleService roleService, RoleMapper roleMapper, UserMapper userMapper) {
         this.userService = userService;
         this.roleService = roleService;
+        this.roleMapper = roleMapper;
+        this.userMapper = userMapper;
     }
 
     @GetMapping("/users")
@@ -48,18 +54,7 @@ public class AdminController {
     public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
         User user = userService.findById(id)
                 .orElseThrow(() -> new NoSuchUserException("User with id " + id + " not found"));
-
-        UserDTO userDTO = new UserDTO(
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getAge(),
-                user.getRoles().stream()
-                        .map(role -> new RoleDTO(role.getId(), role.getName()))
-                        .collect(Collectors.toSet())
-        );
-
+        UserDTO userDTO = userMapper.toDTO(user);
         return new ResponseEntity<>(userDTO, HttpStatus.OK);
     }
 
@@ -67,33 +62,30 @@ public class AdminController {
     public ResponseEntity<UserDTO> createUser(@Validated @RequestBody UserDTO userDTO) {
         User user = new User();
         userService.updateUserFields(user, userDTO);
-
         Set<Role> roles = userDTO.getRoles() != null ? userDTO.getRoles().stream()
                 .map(roleDTO -> new Role(roleDTO.getId(), roleDTO.getName()))
                 .collect(Collectors.toSet()) : new HashSet<>();
         user.setRoles(roles);
-
         userService.add(user);
         return new ResponseEntity<>(userDTO, HttpStatus.CREATED);
     }
 
     @PutMapping("/users/{id}")
     public ResponseEntity<UserDTO> saveUser(@PathVariable Long id, @RequestBody UserDTO updateUserDTO) {
+
         User oldUser = userService.findById(id)
                 .orElseThrow(() -> new NoSuchUserException("User with id " + id + " not found"));
-
-        if (updateUserDTO.getPassword() != null) {
+        if (updateUserDTO.getPassword() != null && !updateUserDTO.getPassword().isEmpty()) {
             userService.updateUserFields(oldUser, updateUserDTO);
         }
+        if (updateUserDTO.getRoles() != null && !updateUserDTO.getRoles().isEmpty()) {
+            Set<Role> roleSet = updateUserDTO.getRoles().stream()
+                    .map(roleMapper::toEntity)
+                    .collect(Collectors.toSet());
+            oldUser.setRoles(roleSet);
+        }
 
-        List<Role> roles = updateUserDTO.getRoles().stream()
-                .map(roleDTO -> new Role(roleDTO.getId(), roleDTO.getName()))
-                .collect(Collectors.toList());
-
-        Set<Role> roleSet = new HashSet<>(roles);
-        oldUser.setRoles(roleSet);
-
-        userService.update(oldUser);
+        userService.update(updateUserDTO);
         return new ResponseEntity<>(updateUserDTO, HttpStatus.OK);
     }
 
