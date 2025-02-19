@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -58,8 +57,8 @@ public class UserServiceImpl implements UserService {
         userRepository.save(existingUser);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public void updateUserFields(User user, UserDTO userDTO) {
         user.setPassword(userDTO.getPassword());
         user.setFirstName(userDTO.getFirstName());
